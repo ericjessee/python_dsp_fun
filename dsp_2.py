@@ -7,6 +7,9 @@ def triangle_kernel(t, width=1.0):
         return 1 - abs(t) / width
     else:
         return 0.0
+    
+def sinc_kernel(t, M, fc=100):
+    return np.sin(2*np.pi*fc*(t-0.5*M))/(np.pi*(t-0.5*M))
 
 # Rectangle function generator
 def rectangle_data(width, length, dt=1.0):
@@ -27,6 +30,30 @@ def rectangle_data(width, length, dt=1.0):
     data[center - half_width:center + half_width + 1] = 1
     return data
 
+def sine_data(duration, f=500, a=1.0, dt=1.0):
+    # Parameters
+    frequency = f  # Frequency in Hz
+    amplitude = a  # Amplitude of the sine wave
+    sampling_rate = 1/dt
+    
+
+    # Generate the time values
+    t = np.linspace(0, duration, int(sampling_rate * duration), endpoint=False)
+
+    # Generate the sine wave
+    sine_wave = amplitude * np.sin(2 * np.pi * frequency * t)
+    #plot_sine_wave(t, sine_wave)
+    return sine_wave
+
+def plot_sine_wave(t, data):
+    plt.plot(t, data)
+    plt.title('Sine Wave')
+    plt.xlabel('Time (s)')
+    plt.ylabel('Amplitude')
+    plt.grid()
+    plt.show()
+    return
+
 def finite_convolution_continuous(kernel_func, g, dt=1.0):
     g = np.array(g)
     n = len(g)
@@ -34,6 +61,7 @@ def finite_convolution_continuous(kernel_func, g, dt=1.0):
     
     # Calculate the normalization factor by integrating the kernel over its width
     kernel_sum = sum(kernel_func(t) for t in np.arange(0, n * dt, dt))
+    #kernel_sum=1
     
     for i in range(n):
         for j in range(n):
@@ -72,11 +100,54 @@ def test_convolution_with_triangle_kernel():
     indices = np.arange(length)
 
     # Define kernel function with fixed width
-    kernel_width = 100
+    kernel_width = 200
     conv_result = finite_convolution_continuous(lambda t: triangle_kernel(t, width=kernel_width), rect_data, dt=dt)
     
     # Prepare data for scatter plot
     data_before = (indices, rect_data)
+    data_after = (indices, conv_result)
+    
+    # Plot data before and after convolution
+    scatter_plot(data_before, data_after, labels=('Before Convolution', 'After Convolution'))
+    
+def test_sine_convolution_with_triangle_kernel():
+    duration = 0.005   #duration of time to generate
+    dt = 1/48000
+    length = duration/dt
+    freq = 500
+    amplitude = 1
+    
+    # Generate the rectangular data points
+    wave_data = sine_data(duration, freq, amplitude, dt)
+    indices = np.arange(length)
+
+    # Define kernel function with fixed width
+    kernel_width = 1
+    conv_result = finite_convolution_continuous(lambda t: triangle_kernel(t, width=kernel_width), wave_data, dt=dt)
+    
+    # Prepare data for scatter plot
+    data_before = (indices, wave_data)
+    data_after = (indices, conv_result)
+    
+    # Plot data before and after convolution
+    scatter_plot(data_before, data_after, labels=('Before Convolution', 'After Convolution'))
+    
+def test_sine_convolution_with_sinc_kernel():
+    duration = 0.005   #duration of time to generate
+    dt = 1/48000
+    length = duration/dt
+    freq = 500
+    amplitude = 1
+    
+    # Generate the rectangular data points
+    wave_data = sine_data(duration, freq, amplitude, dt)
+    indices = np.arange(length)
+
+    filter_cutoff=freq
+    conv_result = finite_convolution_continuous(lambda t: sinc_kernel(t, length, filter_cutoff), wave_data, dt=dt)
+    
+    # Prepare data for scatter plot
+    data_before = (indices, wave_data)
     data_after = (indices, conv_result)
     
     # Plot data before and after convolution
@@ -111,4 +182,5 @@ def plot_kernel(kernel_func, time_range=(-10, 10), dt=0.1, width=1.0):
 
 # Call the test function
 #plot_kernel(triangle_kernel, time_range=(-5, 5), dt=0.1, width=2.0)
-test_convolution_with_triangle_kernel()
+#test_convolution_with_triangle_kernel()
+test_sine_convolution_with_sinc_kernel()
